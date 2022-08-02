@@ -67,7 +67,6 @@ public class ServerPeer extends SocketActionListener {
             } finally {
                 closeAllConnect();
             }
-
         }
     };
 
@@ -86,7 +85,7 @@ public class ServerPeer extends SocketActionListener {
             }
 
             for (SocketConnection io : mConnectionManagerMap.values()) {
-                closeConnection(io);
+                io.disconnect(false);
             }
             mConnectionManagerMap.clear();
 
@@ -96,31 +95,21 @@ public class ServerPeer extends SocketActionListener {
         }
     }
 
-    public void closeConnection(SocketConnection io) throws IOException {
-        if (io != null) {
-            if (io.getSocket() == authClient) {
-                authClient = null;
-            }
-
-            io.disconnect(false);
-            mConnectionManagerMap.remove(io.getSocket().getRemoteSocketAddress().toString());
-        }
-    }
-
     protected void closeServerConnection() throws IOException {
         if (serverSocket != null) {
             serverSocket.close();
         }
     }
 
-    void sendRequest(Socket socket, JSONObject request) {
+    private void sendRequest(Socket socket, JSONObject request) {
         byte[] bytes = Request.packRequest(request);
         ioForSocket(socket).sendBytes(bytes);
     }
 
-    public void handleReceiveMessage(Socket socket, byte[] bytes) {
+    private void handleReceiveMessage(Socket socket, byte[] bytes) {
         JSONObject result = Request.unpackRequest(bytes);
         String cmd = result.optString("cmd","");
+        Log.d("ServerPeer", "handleReceiveMessage:" + cmd);
 
         if (cmd.equals(Request.REQ_AUTH)) {
             //验证逻辑
@@ -145,11 +134,13 @@ public class ServerPeer extends SocketActionListener {
             HashMap uploadFile = null;
             JSONObject obj = result.optJSONObject("file");
             int id = obj.optInt("id",-1);
+            int acceptSize = obj.optInt("acceptSize",0);
 
             for (HashMap file : files) {
                 int fid = (int) file.get("id");
                 if (id == fid) {
                     uploadFile = file;
+                    uploadFile.put("acceptSize",acceptSize);
                     break;
                 }
             }
@@ -168,7 +159,7 @@ public class ServerPeer extends SocketActionListener {
         sendRequest(authClient, Request.fileListResponse(files));
     }
 
-    public List<HashMap> listFileOfAssets() {
+    private List<HashMap> listFileOfAssets() {
         List<HashMap> list = new ArrayList();
         File file = context.getFilesDir();
         File[] files = file.listFiles();
@@ -193,7 +184,7 @@ public class ServerPeer extends SocketActionListener {
         return list;
     }
 
-    void sendFile(HashMap uploadFile) {
+    private void sendFile(HashMap uploadFile) {
         try {
             String filePath = (String) uploadFile.get("filePath");
             File file = new File(filePath);
@@ -210,8 +201,12 @@ public class ServerPeer extends SocketActionListener {
     }
 
     private SocketConnection ioForSocket(Socket socket) {
-        String key = socket.getRemoteSocketAddress().toString();
-        return mConnectionManagerMap.get(key);
+        for(SocketConnection io:mConnectionManagerMap.values()){
+            if (socket == io.getSocket()){
+                return io;
+            }
+        }
+        return null;
     }
 
     @Override
@@ -226,7 +221,7 @@ public class ServerPeer extends SocketActionListener {
         SocketConnection io = new SocketConnection(socketAddress,this);
         io.accept(socket);
 
-        String key = socket.getRemoteSocketAddress().toString();
+        String key = socketAddress.toString();
         mConnectionManagerMap.put(key, io);
         mExecutorService.execute(io);
     }
@@ -234,6 +229,11 @@ public class ServerPeer extends SocketActionListener {
     @Override
     public void onSocketDisconnect(Socket socket, boolean isNeedReconnect) {
         Log.d("ClientPeer","---> socket连接断开");
+        SocketConnection io = ioForSocket(socket);
+        if (io.getSocket() == authClient) {
+            authClient = null;
+        }
+        mConnectionManagerMap.remove(io.getSocketAddress().toString());
     }
 
     @Override

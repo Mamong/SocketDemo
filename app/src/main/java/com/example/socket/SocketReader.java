@@ -42,10 +42,13 @@ public class SocketReader {
 
     private boolean stopThread;
 
+    private SocketConnection io;
 
-    public SocketReader(Socket socket, ISocketActionListener listener) {
+
+    public SocketReader(SocketConnection io, ISocketActionListener listener) {
         this.listener = listener;
-        this.socket = socket;
+        this.io = io;
+        this.socket = io.getSocket();
     }
 
     public void read() throws IOException, ReadRecoverableException, ReadUnrecoverableException {
@@ -154,13 +157,14 @@ public class SocketReader {
                 unrecoverableException.printStackTrace();
                 // 停止线程
                 stopThread = true;
-                release();
-                listener.onSocketDisconnect(socket,false);
+                io.disconnect(false);
+                //release();
+                //listener.onSocketDisconnect(socket,false);
             } catch (ReadRecoverableException | IOException readRecoverableException) {
                 readRecoverableException.printStackTrace();
                 // 重连
-                //connectionManager.disconnect(true);
-                listener.onSocketDisconnect(socket,true);
+                io.disconnect(true);
+                //listener.onSocketDisconnect(socket,true);
             }
         }
     };
@@ -227,6 +231,10 @@ public class SocketReader {
 
         if (remainingBuf != null) {
             remainingBuf = null;
+        }
+
+        if (readerThread != null && !readerThread.isAlive()) {
+            readerThread = null;
         }
 
         try {

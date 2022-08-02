@@ -90,6 +90,7 @@ public class MainActivity extends AppCompatActivity {
         clientShowText = (TextView)findViewById(R.id.client_status_textview);
 
         portInputEdit.setText("6000");
+//        addressInputEdit.setText("192.168.5.132:63543");
         addressInputEdit.setText("192.168.5.159:63543");
 //        addressInputEdit.setText("192.168.2.150:63543");
 

@@ -60,7 +60,7 @@ public class SocketConnection implements Runnable {
 
     public synchronized void accept(Socket socket){
         this.socket = socket;
-        onConnectionOpened();
+        onConnectionOpened(false);
     }
 
     // 连接任务
@@ -102,14 +102,14 @@ public class SocketConnection implements Runnable {
         socket.setTcpNoDelay(true);
         // 连接已经打开
         if (socket.isConnected() && !socket.isClosed()) {
-            onConnectionOpened();
+            onConnectionOpened(true);
         }
     }
 
     /**
      * 连接成功
      */
-    protected void onConnectionOpened() {
+    protected void onConnectionOpened(Boolean useBuiltinThread) {
         connectionStatus.set(SocketStatus.SOCKET_CONNECTED);
 
         initIO();
@@ -117,11 +117,13 @@ public class SocketConnection implements Runnable {
         setOptions(socketOptions);
 
         // 开启连接线程
-        if (connExecutor == null || connExecutor.isShutdown()) {
-            // 核心线程数为0，非核心线程数可以有Integer.MAX_VALUE个，存活时间为60秒，适合于在不断进行连接的情况下，避免重复创建和销毁线程
-            connExecutor = Executors.newCachedThreadPool();
+        if(useBuiltinThread){
+            if (connExecutor == null || connExecutor.isShutdown()) {
+                // 核心线程数为0，非核心线程数可以有Integer.MAX_VALUE个，存活时间为60秒，适合于在不断进行连接的情况下，避免重复创建和销毁线程
+                connExecutor = Executors.newCachedThreadPool();
+            }
+            connExecutor.execute(this);
         }
-        connExecutor.execute(this);
     }
 
     public synchronized void disconnect(boolean isNeedReconnect) {
@@ -191,8 +193,8 @@ public class SocketConnection implements Runnable {
 
     //初始化io
     private void initIO() {
-        reader = new SocketReader(socket,listener);
-        writer = new SocketWriter(socket,listener);
+        reader = new SocketReader(this,listener);
+        writer = new SocketWriter(this,listener);
     }
 
     public void sendBytes(byte[] bytes) {

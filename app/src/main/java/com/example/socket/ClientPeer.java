@@ -3,6 +3,7 @@ package com.example.socket;
 import android.app.Activity;
 import android.util.Log;
 
+import com.example.myapplication.SHAUtil;
 import com.example.socket.dispatcher.SocketActionListener;
 import com.example.socket.dispatcher.SocketStatus;
 
@@ -26,6 +27,7 @@ public class ClientPeer extends SocketActionListener {
     private RandomAccessFile fileOutStream;
 
     private Activity context;
+    private final String TAG = "ClientPeer";
 
     public ClientPeer(Activity context){
         this.context = context;
@@ -62,11 +64,14 @@ public class ClientPeer extends SocketActionListener {
             }
             //请求文件列表或继续传输文件
             if(fileItems == null || fileItems.length() == 0){
+                Log.d(TAG,"auth");
                 sendRequest(Request.fileListRequest());
             }else{
                 requestFile();
             }
         }else if(cmd.equals(Request.RSP_FILE_INFO_LIST)){
+            Log.d(TAG,"response RSP_FILE_INFO_LIST");
+
             fileItems = result.optJSONArray("files");
             //检查磁盘剩余空间是否足够
 
@@ -85,26 +90,32 @@ public class ClientPeer extends SocketActionListener {
         if (fileIndex >= fileItems.length()){
             return;
         }
+        Log.d(TAG,"requestFile");
         downloadFile = fileItems.optJSONObject(fileIndex);
         sendRequest(Request.fileRequest(downloadFile));
     }
 
     private void prepareWriteFile(){
-        if(fileOutStream == null){
-            String fileName = downloadFile.optString("fileName","");
-            int acceptSize = downloadFile.optInt("acceptSize",0);
-            try {
-                File tempFile = null;
-                if (tempFile == null){
-                    tempFile = File.createTempFile(fileName,null);
-                }
-                fileOutStream = new RandomAccessFile(tempFile, "rw");
-                fileOutStream.seek(acceptSize);
-            } catch (IOException e) {
-                e.printStackTrace();
-                finishWriteFile();
+        finishWriteFile();
+
+        String savePath = downloadFile.optString("savePath");
+        String fileName = downloadFile.optString("fileName","");
+        int acceptSize = downloadFile.optInt("acceptSize",0);
+        try {
+            File file = null;
+            if (savePath.length() == 0){
+                file = File.createTempFile(fileName,null);
+                downloadFile.put("savePath",file.getPath());
+            }else {
+                file = new File(savePath);
             }
+            fileOutStream = new RandomAccessFile(file, "rw");
+            fileOutStream.seek(acceptSize);
+        } catch (IOException | JSONException e) {
+            e.printStackTrace();
+            finishWriteFile();
         }
+
     }
 
     private void writeFileChunk(byte[] chunk){
@@ -130,14 +141,24 @@ public class ClientPeer extends SocketActionListener {
 
         //检查是否写入完全
         if (acceptSize == fileSize){
-            finishWriteFile();
-            downloadFile = null;
-            fileIndex++;
-            Log.d("handleReceiveChunk","receive:"+chunk.length+",acceptSize:"+acceptSize+",fileSize:"+fileSize);
-            if (fileIndex < fileItems.length()){
-                requestFile();
-            }else{
-                sendRequest(Request.fileListEndRequest());
+            String checkSum = downloadFile.optString("checkSum");
+            String savePath = downloadFile.optString("savePath");
+            String localMD5 = "";
+            try {
+                localMD5 = SHAUtil.getMD5Checksum(savePath);
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+            if(checkSum.length() == 0 || localMD5.equals(checkSum)){
+                finishWriteFile();
+                downloadFile = null;
+                fileIndex++;
+                Log.d("handleReceiveChunk","传输完成:"+fileIndex);
+                if (fileIndex < fileItems.length()){
+                    requestFile();
+                }else{
+                    sendRequest(Request.fileListEndRequest());
+                }
             }
         }
     }
