@@ -99,8 +99,8 @@ public class ClientPeer extends SocketActionListener {
         finishWriteFile();
 
         String savePath = downloadFile.optString("savePath");
-        String fileName = downloadFile.optString("fileName","");
-        int acceptSize = downloadFile.optInt("acceptSize",0);
+        String fileName = downloadFile.optString("fileName");
+        int acceptSize = downloadFile.optInt("acceptSize");
         try {
             File file = null;
             if (savePath.length() == 0){
@@ -121,8 +121,8 @@ public class ClientPeer extends SocketActionListener {
     private void writeFileChunk(byte[] chunk){
         if (fileOutStream == null) return;
 
-        int fileSize = downloadFile.optInt("fileSize",0);
-        int acceptSize = downloadFile.optInt("acceptSize",0);
+        int fileSize = downloadFile.optInt("fileSize");
+        int acceptSize = downloadFile.optInt("acceptSize");
         try {
             fileOutStream.write(chunk);
             acceptSize += chunk.length;
@@ -174,7 +174,11 @@ public class ClientPeer extends SocketActionListener {
         }
     }
 
-    @Override
+    //统计接收速率
+    public void onSocketDidReceiveChunk(Socket socket, int chunkLength) {
+    }
+
+        @Override
     public void onSocketConnSuccess(Socket socket) {
         Log.d("ClientPeer","---> socket连接成功");
         sendRequest(Request.authRequest());
@@ -195,6 +199,7 @@ public class ClientPeer extends SocketActionListener {
         if (tag == -1){
             handleReceiveMessage(readData);
         }else {
+            onSocketDidReceiveChunk(socket,readData.length);
             handleReceiveChunk(readData);
         }
     }

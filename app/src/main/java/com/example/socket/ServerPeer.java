@@ -108,13 +108,13 @@ public class ServerPeer extends SocketActionListener {
 
     private void handleReceiveMessage(Socket socket, byte[] bytes) {
         JSONObject result = Request.unpackRequest(bytes);
-        String cmd = result.optString("cmd","");
+        String cmd = result.optString("cmd");
         Log.d("ServerPeer", "handleReceiveMessage:" + cmd);
 
         if (cmd.equals(Request.REQ_AUTH)) {
             //验证逻辑
             int code = 1;
-            String userid = result.optString("userid","");
+            String userid = result.optString("userid");
 
             if (code == 1) {
                 authClient = socket;
@@ -134,7 +134,7 @@ public class ServerPeer extends SocketActionListener {
             HashMap uploadFile = null;
             JSONObject obj = result.optJSONObject("file");
             int id = obj.optInt("id",-1);
-            int acceptSize = obj.optInt("acceptSize",0);
+            int acceptSize = obj.optInt("acceptSize");
 
             for (HashMap file : files) {
                 int fid = (int) file.get("id");
