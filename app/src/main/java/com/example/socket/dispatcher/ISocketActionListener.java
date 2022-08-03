@@ -1,5 +1,7 @@
 package com.example.socket.dispatcher;
 
+import com.example.socket.SocketConnection;
+
 import java.net.Socket;
 
 /**
@@ -11,20 +13,20 @@ public interface ISocketActionListener {
 
     void onSocketAccept(Socket socket);
 
-    void onSocketConnSuccess(Socket socket);
+    void onSocketConnSuccess(SocketConnection socket);
 
-    void onSocketConnFail(Socket socket, boolean isNeedReconnect);
+    void onSocketConnFail(SocketConnection socket, boolean isNeedReconnect);
 
-    void onSocketDisconnect(Socket socket, boolean isNeedReconnect);
+    void onSocketDisconnect(SocketConnection socket, boolean isNeedReconnect);
 
 //    void onSocketReceiveData(Socket socket, byte[] readData);
 
 //    void onSocketDidSendData(Socket socket);
 
-    void onSocketReceivePacket(Socket socket, byte[] readData, int tag);
+    void onSocketReceivePacket(SocketConnection socket, byte[] readData, int tag);
 //    void onSocketReceiveChunk(Socket socket, byte[] readData);
 
-    void  onSocketDidSendChunk(Socket socket, int chunkLength);
+    void  onSocketDidSendChunk(SocketConnection socket, int chunkLength);
     //void onSocketDidSendPartialData(Socket socket, int length);
 
     //void onSocketDidReceivePartialData(Socket socket, int length);

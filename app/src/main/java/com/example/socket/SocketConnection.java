@@ -36,7 +36,6 @@ public class SocketConnection implements Runnable {
     private SocketReader reader;
     private SocketWriter writer;
     private final ISocketActionListener listener;
-
     private SocketOptions socketOptions;
 
 
@@ -74,7 +73,7 @@ public class SocketConnection implements Runnable {
                 // 连接异常
                 e.printStackTrace();
                 connectionStatus.set(SocketStatus.SOCKET_DISCONNECTED); // 设置为未连接
-                listener.onSocketConnFail(socket,false);
+                listener.onSocketConnFail(SocketConnection.this,false);
             }
         }
     };
@@ -171,7 +170,7 @@ public class SocketConnection implements Runnable {
                 closeConnection();
                 Log.d("ClientPeer","---> 关闭socket连接");
                 connectionStatus.set(SocketStatus.SOCKET_DISCONNECTED);
-                listener.onSocketDisconnect(socket,isNeedReconnect);
+                listener.onSocketDisconnect(SocketConnection.this,isNeedReconnect);
             } catch (IOException e) {
                 // 断开连接发生异常
                 e.printStackTrace();
@@ -214,7 +213,7 @@ public class SocketConnection implements Runnable {
             writer.openWriter();
         if (reader != null)
             reader.openReader();
-        listener.onSocketConnSuccess(socket);
+        listener.onSocketConnSuccess(this);
     }
 
     public void closeIO() {

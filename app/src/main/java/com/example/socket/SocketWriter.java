@@ -148,27 +148,15 @@ public class SocketWriter {
                 os.write(buffer.array());
                 os.write(bytes, 0, size);
                 os.flush();
-                listener.onSocketDidSendChunk(socket,size);
+                listener.onSocketDidSendChunk(io,size);
                 //每1kb清空一次缓冲区
                 //为了避免每读入一个字节都写一次，java的输流有了缓冲区，读入数据时会首先将数据读入缓冲区，等缓冲区满后或执行flush或close时一次性进行写入操作
             }
-        }catch(SocketException e){
+        }catch(IOException e){
             //己方关闭后读写,java.net.SocketException: Socket is closed
             //对方关闭后读写，java.net.SocketException: （Connection reset或者Connect reset by peer:Socket write error）
             //继续发送，java.net.SocketException: Broken pipe
             //读写超时,java.net.SocketTimeoutException
-            e.printStackTrace();
-            //io.disconnect(true);
-            //listener.onSocketDisconnect(socket,true);
-        }catch (IOException e) {
-            //其他异常，应该只要传输失败就行
-            e.printStackTrace();
-            //isShutdown = true;
-        }
-
-        try {
-            fileOutStream.close();
-        } catch (IOException e) {
             e.printStackTrace();
         }
     }

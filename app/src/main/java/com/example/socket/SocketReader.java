@@ -44,7 +44,6 @@ public class SocketReader {
 
     private SocketConnection io;
 
-
     public SocketReader(SocketConnection io, ISocketActionListener listener) {
         this.listener = listener;
         this.io = io;
@@ -115,7 +114,7 @@ public class SocketReader {
                     }
 
                     // 分发数据
-                    listener.onSocketReceivePacket(socket, bodyBuf.array(),bodyType);
+                    listener.onSocketReceivePacket(io, bodyBuf.array(),bodyType);
                     return;
 
                 } else { // there are no data left in buffer and some data pieces in channel
@@ -124,7 +123,7 @@ public class SocketReader {
             }
             // 无余留，则从stream中读
             readBodyFromStream(bodyBuf);
-            listener.onSocketReceivePacket(socket, bodyBuf.array(),bodyType);
+            listener.onSocketReceivePacket(io, bodyBuf.array(),bodyType);
         } else if (bodyLength == 0) { // 没有body数据
             if (remainingBuf != null) {
                 // the body is empty so header remaining buf need set null

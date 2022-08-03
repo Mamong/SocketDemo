@@ -27,7 +27,7 @@ public class ServerPeer extends SocketActionListener {
     private ExecutorService mExecutorService;
     private ExecutorService launchService;
 
-    private Socket authClient;
+    private SocketConnection authClient;
 
     private final Activity context;
     private List<HashMap> files;
@@ -101,12 +101,12 @@ public class ServerPeer extends SocketActionListener {
         }
     }
 
-    private void sendRequest(Socket socket, JSONObject request) {
+    private void sendRequest(SocketConnection socket, JSONObject request) {
         byte[] bytes = Request.packRequest(request);
-        ioForSocket(socket).sendBytes(bytes);
+        socket.sendBytes(bytes);
     }
 
-    private void handleReceiveMessage(Socket socket, byte[] bytes) {
+    private void handleReceiveMessage(SocketConnection socket, byte[] bytes) {
         JSONObject result = Request.unpackRequest(bytes);
         String cmd = result.optString("cmd");
         Log.d("ServerPeer", "handleReceiveMessage:" + cmd);
@@ -194,19 +194,10 @@ public class ServerPeer extends SocketActionListener {
                 acceptSize = (int) uploadFile.get("acceptSize");
             }
             fileOutStream.seek(acceptSize);
-            ioForSocket(authClient).sendFile(fileOutStream,1);
+            authClient.sendFile(fileOutStream,1);
         } catch (IOException e) {
             e.printStackTrace();
         }
-    }
-
-    private SocketConnection ioForSocket(Socket socket) {
-        for(SocketConnection io:mConnectionManagerMap.values()){
-            if (socket == io.getSocket()){
-                return io;
-            }
-        }
-        return null;
     }
 
     @Override
@@ -227,22 +218,21 @@ public class ServerPeer extends SocketActionListener {
     }
 
     @Override
-    public void onSocketDisconnect(Socket socket, boolean isNeedReconnect) {
+    public void onSocketDisconnect(SocketConnection socket, boolean isNeedReconnect) {
         Log.d("ClientPeer","---> socket连接断开");
-        SocketConnection io = ioForSocket(socket);
-        if (io.getSocket() == authClient) {
+        if (socket == authClient) {
             authClient = null;
         }
-        mConnectionManagerMap.remove(io.getSocketAddress().toString());
+        mConnectionManagerMap.remove(socket.getSocketAddress().toString());
     }
 
     @Override
-    public void onSocketDidSendChunk(Socket socket, int chunkLength) {
+    public void onSocketDidSendChunk(SocketConnection socket, int chunkLength) {
         //统计传输速率
     }
 
     @Override
-    public void onSocketReceivePacket(Socket socket, byte[] readData, int tag) {
+    public void onSocketReceivePacket(SocketConnection socket, byte[] readData, int tag) {
         //处理消息
         handleReceiveMessage(socket,readData);
     }

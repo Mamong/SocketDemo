@@ -115,7 +115,6 @@ public class ClientPeer extends SocketActionListener {
             e.printStackTrace();
             finishWriteFile();
         }
-
     }
 
     private void writeFileChunk(byte[] chunk){
@@ -175,27 +174,27 @@ public class ClientPeer extends SocketActionListener {
     }
 
     //统计接收速率
-    public void onSocketDidReceiveChunk(Socket socket, int chunkLength) {
+    public void onSocketDidReceiveChunk(SocketConnection socket, int chunkLength) {
     }
 
-        @Override
-    public void onSocketConnSuccess(Socket socket) {
+    @Override
+    public void onSocketConnSuccess(SocketConnection socket) {
         Log.d("ClientPeer","---> socket连接成功");
         sendRequest(Request.authRequest());
     }
 
     @Override
-    public void onSocketConnFail(Socket socket, boolean isNeedReconnect) {
+    public void onSocketConnFail(SocketConnection socket, boolean isNeedReconnect) {
         Log.d("ClientPeer","---> socket连接失败");
     }
 
     @Override
-    public void onSocketDisconnect(Socket socket, boolean isNeedReconnect) {
+    public void onSocketDisconnect(SocketConnection socket, boolean isNeedReconnect) {
         Log.d("ClientPeer","---> socket连接断开");
     }
 
     @Override
-    public void onSocketReceivePacket(Socket socket, byte[] readData, int tag) {
+    public void onSocketReceivePacket(SocketConnection socket, byte[] readData, int tag) {
         if (tag == -1){
             handleReceiveMessage(readData);
         }else {
@@ -203,85 +202,4 @@ public class ClientPeer extends SocketActionListener {
             handleReceiveChunk(readData);
         }
     }
-
-    /*public void onSocketReceiveData(Socket socket, byte[] readData) {
-        try {
-            int headerLength = 8; //默认的包头长度是4个字节
-            int position = remainingBuf.position();
-            int length = readData.length;
-            int remaining = readData.length;
-            if (position == 0){
-                //获得完整的头部
-                if (position + remaining <= headerLength) {
-                    remainingBuf.put(readData);
-                    io.reader.readHeaderFromSteam(remainingBuf, headerLength - position - remaining);
-                    remaining = 0;
-                }else {
-                    remainingBuf.put(readData,0,headerLength - position);
-                    remaining -= headerLength - position;
-                }
-                int bodyLength = remainingBuf.getInt(0);
-                int bodyType = remainingBuf.getInt(4);
-                if (bodyType == 0){
-                    //创建实际所需大小的buffer
-                    ByteBuffer temp = ByteBuffer.allocate(headerLength + bodyLength);
-                    temp.order(ByteOrder.BIG_ENDIAN);
-                    if(remaining == 0){
-                        temp.put(remainingBuf.array());
-                        remainingBuf = temp;
-                    }else{
-                        temp.put(readData,0,headerLength);
-                        remainingBuf = temp;
-
-                        //把剩余数据丢给后面处理
-                        byte[] dataR = Arrays.copyOfRange(readData,headerLength,length);
-                        onSocketReceiveData(socket,dataR);
-                    }
-                }else{
-                    chunkTotal = 0;
-                    //把剩余数据丢给后面处理
-                    byte[] dataR = Arrays.copyOfRange(readData,headerLength,length);
-                    onSocketReceiveData(socket,dataR);
-                }
-                return;
-            }
-            int bodyLength = remainingBuf.getInt(0);
-            int bodyType = remainingBuf.getInt(4);
-            int bufferRemaining = remainingBuf.remaining();
-            if(bodyType == 0){
-                if(bufferRemaining > length){
-                    remainingBuf.put(readData);
-                }else{
-                    remainingBuf.put(readData,0,bufferRemaining);
-                    byte[] data = Arrays.copyOfRange(remainingBuf.array(),headerLength,headerLength+bodyLength);
-                    handleReceiveMessage(data);
-
-                    //有剩余丢给下次处理
-                    initBuffer();
-                    if(bufferRemaining < length){
-                        byte[] dataR = Arrays.copyOfRange(readData,bufferRemaining,length);
-                        onSocketReceiveData(socket,dataR);
-                    }
-                }
-            }else {
-                int remainingL = bodyLength - chunkTotal;
-                if(remainingL > length){
-                    handleReceiveChunk(readData);
-                }else {
-                    byte[] data = Arrays.copyOfRange(readData,0,remainingL);
-                    handleReceiveChunk(data);
-
-                    //有超出bodyLength的剩余，丢给下次处理
-                    initBuffer();
-                    if (remainingL < length){
-                        byte[] dataR = Arrays.copyOfRange(readData,bodyLength - chunkTotal,length);
-                        onSocketReceiveData(socket,dataR);
-                    }
-                }
-            }
-
-        }catch(Exception e){
-            e.printStackTrace();
-        }
-    }*/
 }
